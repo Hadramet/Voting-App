@@ -4,7 +4,6 @@ services:
   
   db:
     image: postgres:9.4
-    container_name: db
     ports:
      - 6379
     volumes:
@@ -14,19 +13,22 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+    deploy:
+      replicas: 1
 
   redis:
-    image: redis:5.0-alpine3.10
-    container_name: redis
+    image: redis
     networks:
       - back-tier
     ports:
       - 6379
+    deploy:
+      replicas: 1
 
   worker:
-    build: ./worker
     image: hadramet/worker
-    container_name: worker
+    deploy:
+      replicas: 3
     depends_on:
      - redis
      - db
@@ -34,25 +36,23 @@ services:
      - back-tier
 
   result:
-    build: ./result
     image: hadramet/result
-    container_name: result
     ports:
      - 5001:80
     networks:
      - front-tier
      - back-tier
-    volumes:
-     - "./result:/app"
+    # volumes:
+    #  - "./Voting-App/result:/app"
     command: nodemon server.js
     depends_on:
       - redis
       - db
+    deploy:
+      replicas: 3
 
   vote:
-    build: ./vote
     image: hadramet/vote
-    container_name: vote
     depends_on:
       - redis
       - db
@@ -61,10 +61,27 @@ services:
     networks:
       - back-tier
       - front-tier
-    volumes:
-     - "./vote:/app"
+    # volumes:
+    #  - "./Voting-App/vote:/app"
     command: python app.py
-    
+    deploy:
+      replicas: 3
+  
+  visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+     - back-tier
+     - front-tier
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+  
 networks:
   front-tier:
   back-tier:
