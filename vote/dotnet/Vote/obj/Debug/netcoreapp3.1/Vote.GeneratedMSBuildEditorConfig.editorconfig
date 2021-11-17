@@ -1,0 +1,3 @@
+is_global = true
+build_property.RootNamespace = Vote
+build_property.ProjectDir = c:\dev\School\Docker\DAY3\Voting App\vote\dotnet\Vote\
