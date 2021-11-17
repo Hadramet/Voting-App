@@ -1,0 +1,72 @@
+version: '3.7'
+
+services:
+  
+  db:
+    image: postgres:9.4
+    container_name: db
+    ports:
+     - 6379
+    volumes:
+      - "db-data:/var/lib/postgresql/data"
+    networks:
+      - back-tier
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  redis:
+    image: redis:5.0-alpine3.10
+    container_name: redis
+    networks:
+      - back-tier
+    ports:
+      - 6379
+
+  worker:
+    build: ./worker
+    container_name: worker
+    depends_on:
+     - redis
+     - db
+    networks:
+     - back-tier
+
+  result:
+    build: ./result
+    container_name: result
+    ports:
+     - 5001:80
+    networks:
+     - front-tier
+     - back-tier
+    volumes:
+     - "./result:/app"
+    command: nodemon server.js
+    depends_on:
+      - redis
+      - db
+
+  vote:
+    build: ./vote
+    container_name: vote
+    depends_on:
+      - redis
+      - db
+    ports:
+      - 5000:80
+    networks:
+      - back-tier
+      - front-tier
+    volumes:
+     - "./vote:/app"
+    command: python app.py
+    
+networks:
+  front-tier:
+  back-tier:
+
+volumes:
+  db-data:
+  
+
